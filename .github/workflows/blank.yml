@@ -2,8 +2,8 @@ on:
   workflow_dispatch:
     inputs:
       V8_VERSION:
-        description: 'V8_VERSION'
-        required: true
+        description: 'V8_VERSION (leave blank for version as defined in V8/REV)'
+        required: false
         type: string
         default: ''
       V8_BUILD_MODE:
