@@ -42,7 +42,7 @@ jobs:
           echo $V8_ASAN
           echo $V8_TSAN          
           cd target/Cloud/Docker
-          ./build.sh          
+          ./build.sh v8
         env:
           V8_VERSION: ${{ inputs.V8_VERSION }}
           V8_BUILD_MODE: ${{ inputs.V8_BUILD_MODE }}
