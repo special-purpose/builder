@@ -46,5 +46,5 @@ jobs:
         env:
           V8_VERSION: ${{ inputs.V8_VERSION }}
           V8_BUILD_MODE: ${{ inputs.V8_BUILD_MODE }}
-          V8_ASAN: ${{ inputs.V8_ASAN || "" }}
-          V8_TSAN: ${{ inputs.V8_TSAN || "" }}
+          V8_ASAN: ${{ inputs.V8_ASAN || '' }}
+          V8_TSAN: ${{ inputs.V8_TSAN || '' }}
