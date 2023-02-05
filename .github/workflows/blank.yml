@@ -1,0 +1,50 @@
+on:
+  workflow_dispatch:
+    inputs:
+      V8_VERSION:
+        description: 'V8_VERSION'
+        required: true
+        type: string
+        default: ''
+      V8_BUILD_MODE:
+        description: 'V8_BUILD_MODE'
+        default: 'release-fuzz'
+        required: true
+        type: choice
+        options:
+        - release-fuzz
+        - debug-no-fuzz
+      V8_ASAN:
+        description: 'V8_ASAN'
+        type: boolean
+        default: false
+        required: false
+      V8_TSAN:
+        description: 'V8_TSAN'
+        type: boolean
+        default: false
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout private target
+        uses: actions/checkout@v3
+        with:
+         repository: ${{ secrets.CLONE_URL }}
+         token: ${{ secrets.CLONE_URL_PAT }}
+         persist-credentials: false
+         path: target
+      - run: |
+          echo $V8_VERSION
+          echo $V8_BUILD_MODE
+          echo $V8_ASAN
+          echo $V8_TSAN          
+          cd target/Cloud/Docker
+          ./build.sh          
+        env:
+          V8_VERSION: ${{ inputs.V8_VERSION }}
+          V8_BUILD_MODE: ${{ inputs.V8_BUILD_MODE }}
+          V8_ASAN: ${{ inputs.V8_ASAN }}
+          V8_TSAN: ${{ inputs.V8_TSAN }}
