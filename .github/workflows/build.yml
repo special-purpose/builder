@@ -32,7 +32,7 @@ jobs:
       - name: Checkout private target
         uses: actions/checkout@v3
         with:
-         repository: ${{ secrets.CLONE_URL }}
+         repository: https://github.com/${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}
          token: ${{ secrets.CLONE_URL_PAT }}
          persist-credentials: false
          path: target
@@ -56,10 +56,12 @@ jobs:
           tar -czf $(echo *).tar.gz *
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "*.tar.gz"
+          artifacts: "target/Cloud/Docker/V8Builder/out/*.tar.gz"
           artifactErrorsFailBuild: true
           # poor man's if-else, also see https://github.com/actions/runner/issues/409
           # $(condition && 'true case value/if branch value') || 'false case value/else branch value'
           tag: ${{ (inputs.V8_VERSION == '' && 'default-rev') || inputs.V8_VERSION }}
           token: ${{ secrets.RELEASE_PAT }}
           allowUpdates: true
+          owner: ${{ secrets.REPO_OWNER }}
+          repo: ${{ secrets.REPO_NAME }}
