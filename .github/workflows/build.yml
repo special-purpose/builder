@@ -36,7 +36,8 @@ jobs:
          token: ${{ secrets.CLONE_URL_PAT }}
          persist-credentials: false
          path: target
-      - run: |
+      - name: "${{ inputs.V8_VERSION }} ${{ inputs.V8_BUILD_MODE }}"
+        run: |
           echo $V8_VERSION
           echo $V8_BUILD_MODE
           echo $V8_ASAN
@@ -48,3 +49,20 @@ jobs:
           V8_BUILD_MODE: ${{ inputs.V8_BUILD_MODE }}
           V8_ASAN: ${{ inputs.V8_ASAN || '' }}
           V8_TSAN: ${{ inputs.V8_TSAN || '' }}
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Package
+        run: |
+          cd V8Builder/out/
+          # Will this expansion bite me? Probably.
+          tar -czf $(echo *).tar.gz *
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "*.tar.gz"
+          artifactErrorsFailBuild: true
+          # poor man's if-else, also see https://github.com/actions/runner/issues/409
+          # $(condition && 'true case value/if branch value') || 'false case value/else branch value'
+          tag: ${{ (inputs.V8_VERSION == '' && 'default-rev') || inputs.V8_VERSION }}
+          token: ${{ secrets.RELEASE_PAT }}
+          allowUpdates: true
