@@ -49,9 +49,6 @@ jobs:
           V8_BUILD_MODE: ${{ inputs.V8_BUILD_MODE }}
           V8_ASAN: ${{ inputs.V8_ASAN || '' }}
           V8_TSAN: ${{ inputs.V8_TSAN || '' }}
-  package:
-    runs-on: ubuntu-latest
-    steps:
       - name: Package
         run: |
           cd V8Builder/out/
