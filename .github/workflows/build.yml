@@ -51,7 +51,7 @@ jobs:
           V8_TSAN: ${{ inputs.V8_TSAN || '' }}
       - name: Package
         run: |
-          cd V8Builder/out/
+          cd target/Cloud/Docker/V8Builder/out/
           # Will this expansion bite me? Probably.
           tar -czf $(echo *).tar.gz *
       - uses: ncipollo/release-action@v1
