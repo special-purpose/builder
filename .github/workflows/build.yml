@@ -2,41 +2,101 @@ on:
   workflow_dispatch:
     inputs:
       V8_VERSION:
-        description: 'V8_VERSION (leave blank for version as defined in V8/REV)'
+        description: "V8_VERSION (leave blank for version as defined in V8/REV)"
         required: false
         type: string
-        default: ''
+        default: ""
       V8_BUILD_MODE:
-        description: 'V8_BUILD_MODE'
-        default: 'release-fuzz'
+        description: "V8_BUILD_MODE"
+        default: "release-fuzz"
         required: true
         type: choice
         options:
-        - release-fuzz
-        - debug-no-fuzz
+          - release-fuzz
+          - debug-no-fuzz
       V8_ASAN:
-        description: 'V8_ASAN'
+        description: "V8_ASAN"
         type: boolean
         default: false
         required: false
       V8_TSAN:
-        description: 'V8_TSAN'
+        description: "V8_TSAN"
         type: boolean
         default: false
         required: false
 
+env:
+  V8_VERSION: ${{ inputs.V8_VERSION }}
+  V8_BUILD_MODE: ${{ inputs.V8_BUILD_MODE }}
+  V8_ASAN: ${{ inputs.V8_ASAN || '' }}
+  V8_TSAN: ${{ inputs.V8_TSAN || '' }}
+
 jobs:
+  determine-tag-name:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine tag name
+        id: determine-tag-name
+        uses: actions/github-script@v3
+        with:
+          script: |
+            const tag = process.env.V8_VERSION;
+            const date = new Date();
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const today = `${year}-${month}-${day}`;
+            if (tag === 'main') {
+              core.setOutput('tag', `main-${today}`);
+            } else if (tag === '') {
+              core.setOutput('tag', 'default-rev-${today}');
+            } else {
+              core.setOutput('tag', tag);
+            }
+      - name: Determine target dir
+        id: determine-target-dir
+        run: |
+          cd target/Cloud/Docker/V8Builder
+          TARGET_DIR=$(./compute_target_dir.sh)
+          echo "{target_dir}={$TARGET_DIR}" >> $GITHUB_OUTPUT
+      - name: Check whether to skip the build
+        run: |
+          const releaseName = steps.determine-tag-name.outputs.tag;
+          const release = await github.repos.getReleaseByTag({
+            owner: process.env.REPO_OWNER,
+            repo: process.env.REPO_NAME,
+            tag: releaseName
+          }).catch(error => {
+            core.debug(error);
+            return null;
+          });
+          if (release === null) {
+            core.setOutput('skip-build', false);
+          } else {            
+            const targetDir = steps.determine-tag-name.outputs.target_dir;
+            const assets = await github.repos.listReleaseAssets({
+              owner: process.env.REPO_OWNER,
+              repo: process.env.REPO_NAME,
+              release_id: release.data.id
+            });
+            const assetNames = assets.data.map(asset => asset.name);
+            if (assetNames.includes(`${targetDir}.tar.gz`)) {
+              core.setOutput('skip-build', true);
+            } else {
+              core.setOutput('skip-build', false);
+            }
+          }
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout private target
         uses: actions/checkout@v3
         with:
-         repository: ${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}
-         token: ${{ secrets.CLONE_URL_PAT }}
-         persist-credentials: false
-         path: target
-      - name: "${{ inputs.V8_VERSION }} ${{ inputs.V8_BUILD_MODE }}"
+          repository: ${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}
+          token: ${{ secrets.CLONE_URL_PAT }}
+          persist-credentials: false
+          path: target
+      - name: "${{ env.V8_VERSION }} ${{ env.V8_BUILD_MODE }}"
         run: |
           echo $V8_VERSION
           echo $V8_BUILD_MODE
@@ -44,25 +104,62 @@ jobs:
           echo $V8_TSAN          
           cd target/Cloud/Docker
           ./build.sh v8
-        env:
-          V8_VERSION: ${{ inputs.V8_VERSION }}
-          V8_BUILD_MODE: ${{ inputs.V8_BUILD_MODE }}
-          V8_ASAN: ${{ inputs.V8_ASAN || '' }}
-          V8_TSAN: ${{ inputs.V8_TSAN || '' }}
       - name: Package
         run: |
           cd target/Cloud/Docker/V8Builder/out/
-          # Will this expansion bite me? Probably.
-          tar -czf $(echo *).tar.gz *
-      - uses: ncipollo/release-action@v1
+          TARGET_DIR=$(../compute_target_dir.sh)
+          tar -czf "$TARGET_DIR".tar.gz "$TARGET_DIR"
+      - name: Create release
+        uses: actions/github-script@v3
         with:
-          artifacts: "target/Cloud/Docker/V8Builder/out/*.tar.gz"
-          artifactErrorsFailBuild: true
-          # poor man's if-else, also see https://github.com/actions/runner/issues/409
-          # $(condition && 'true case value/if branch value') || 'false case value/else branch value'
-          tag: ${{ (inputs.V8_VERSION == '' && 'default-rev') || inputs.V8_VERSION }}
-          token: ${{ secrets.RELEASE_PAT }}
-          allowUpdates: true
-          owner: ${{ secrets.REPO_OWNER }}
-          repo: ${{ secrets.REPO_NAME }}
-          replacesArtifacts: false
+          github-token: ${{ secrets.RELEASE_PAT }}
+          script: |
+            const releaseName = steps.determine-tag-name.outputs.tag;
+            // add error logging to the await using core.debug
+            const release = await github.repos.getReleaseByTag({
+              owner: process.env.REPO_OWNER,
+              repo: process.env.REPO_NAME,
+              tag: releaseName
+            }).catch(error => {
+              core.debug(error);
+              return null;
+            });
+            if (release === null) {
+              const result = await github.repos.createRelease({
+                owner: process.env.REPO_OWNER,
+                repo: process.env.REPO_NAME,
+                tag_name: releaseName,
+                name: releaseName,
+                body: 'Release created by GitHub Actions',
+                draft: false,
+                prerelease: false
+              });
+              core.info('Created a new release: ' + result.data.html_url);
+            } else {
+              core.info('Release already exists: ' + release.data.html_url);
+            }
+      - name: Upload artifact to release
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.RELEASE_PAT }}
+          script: |
+            // upload artifact to the release we created in the previous step
+            const releaseName = steps.determine-tag-name.outputs.tag;
+            const release = await github.repos.getReleaseByTag({
+              owner: process.env.REPO_OWNER,
+              repo: process.env.REPO_NAME,
+              tag: releaseName
+            });
+            const targetDir = steps.determine-tag-name.outputs.target_dir;
+            const releaseId = release.data.id;
+            const uploadUrl = release.data.upload_url;
+            const artifact = await github.repos.uploadReleaseAsset({
+              url: uploadUrl,
+              headers: {
+                'content-type': 'application/gzip',
+                'content-length': fs.statSync(`target/Cloud/Docker/V8Builder/out/${targetDir}.tar.gz`).size
+              },
+              name: `${targetDir}.tar.gz`,
+              data: fs.readFileSync(`target/Cloud/Docker/V8Builder/out/${targetDir}.tar.gz`)
+            });
+            core.info('Uploaded artifact to release: ' + release.data.html_url);
