@@ -70,6 +70,7 @@ jobs:
       - name: Check whether to skip the build
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.RELEASE_PAT }}
           script: |
             const releaseName = process.env.TAG;
             const release = await github.repos.getReleaseByTag({
