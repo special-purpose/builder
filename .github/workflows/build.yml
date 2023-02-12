@@ -65,7 +65,7 @@ jobs:
         id: determine-target-dir
         run: |
           cd target/Cloud/Docker/V8Builder
-          TARGET_DIR=$(./compute_target_dir.sh)
+          TARGET_DIR=$(./compute-target-dir.sh)
           echo "{target_dir}={$TARGET_DIR}" >> $GITHUB_OUTPUT
       - name: Check whether to skip the build
         uses: actions/github-script@v6
@@ -107,7 +107,7 @@ jobs:
       - name: Package
         run: |
           cd target/Cloud/Docker/V8Builder/out/
-          TARGET_DIR=$(../compute_target_dir.sh)
+          TARGET_DIR=$(../compute-target-dir.sh)
           tar -czf "$TARGET_DIR".tar.gz "$TARGET_DIR"
       - name: Create release
         uses: actions/github-script@v6
