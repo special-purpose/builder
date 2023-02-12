@@ -55,23 +55,23 @@ jobs:
             const day = date.getDate();
             const today = `${year}-${month}-${day}`;
             if (tag === 'main') {
-              core.setOutput('tag', `main-${today}`);
+              core.exportVariable('TAG', `main-${today}`);
             } else if (tag === '') {
-              core.setOutput('tag', 'default-rev-${today}');
+              core.exportVariable('TAG', `default-rev-${today}`);
             } else {
-              core.setOutput('tag', tag);
+              core.exportVariable('TAG', tag);
             }
       - name: Determine target dir
         id: determine-target-dir
         run: |
           cd target/Cloud/Docker/V8Builder
           TARGET_DIR=$(./compute-target-dir.sh)
-          echo "{target_dir}={$TARGET_DIR}" >> $GITHUB_OUTPUT
+          echo "{TARGET_DIR}={$TARGET_DIR}" >> $GITHUB_ENV
       - name: Check whether to skip the build
         uses: actions/github-script@v6
         with:
           script: |
-            const releaseName = steps.determine-tag-name.outputs.tag;
+            const releaseName = process.env.TAG;
             const release = await github.repos.getReleaseByTag({
               owner: process.env.REPO_OWNER,
               repo: process.env.REPO_NAME,
@@ -83,7 +83,7 @@ jobs:
             if (release === null) {
               core.setOutput('skip-build', false);
             } else {            
-              const targetDir = steps.determine-tag-name.outputs.target_dir;
+              const targetDir = process.env.TARGET_DIR;
               const assets = await github.repos.listReleaseAssets({
                 owner: process.env.REPO_OWNER,
                 repo: process.env.REPO_NAME,
@@ -114,8 +114,7 @@ jobs:
         with:
           github-token: ${{ secrets.RELEASE_PAT }}
           script: |
-            const releaseName = steps.determine-tag-name.outputs.tag;
-            // add error logging to the await using core.debug
+            const releaseName = process.env.TAG;
             const release = await github.repos.getReleaseByTag({
               owner: process.env.REPO_OWNER,
               repo: process.env.REPO_NAME,
@@ -143,14 +142,13 @@ jobs:
         with:
           github-token: ${{ secrets.RELEASE_PAT }}
           script: |
-            // upload artifact to the release we created in the previous step
-            const releaseName = steps.determine-tag-name.outputs.tag;
+            const releaseName = process.env.TAG;
             const release = await github.repos.getReleaseByTag({
               owner: process.env.REPO_OWNER,
               repo: process.env.REPO_NAME,
               tag: releaseName
             });
-            const targetDir = steps.determine-tag-name.outputs.target_dir;
+            const targetDir = process.env.TARGET_DIR;
             const releaseId = release.data.id;
             const uploadUrl = release.data.upload_url;
             const artifact = await github.repos.uploadReleaseAsset({
