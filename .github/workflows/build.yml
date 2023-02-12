@@ -77,9 +77,6 @@ jobs:
               owner: process.env.REPO_OWNER,
               repo: process.env.REPO_NAME,
               tag: releaseName
-            }).catch(error => {
-              core.debug(error);
-              return null;
             });
             if (release === null) {
               core.setOutput('skip-build', false);
@@ -120,10 +117,7 @@ jobs:
               owner: process.env.REPO_OWNER,
               repo: process.env.REPO_NAME,
               tag: releaseName
-            }).catch(error => {
-              core.debug(error);
-              return null;
-            });
+            };
             if (release === null) {
               const result = await github.repos.createRelease({
                 owner: process.env.REPO_OWNER,
