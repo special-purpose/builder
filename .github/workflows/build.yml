@@ -73,7 +73,7 @@ jobs:
           github-token: ${{ secrets.RELEASE_PAT }}
           script: |
             const releaseName = process.env.TAG;
-            const release = await github.repos.getReleaseByTag({
+            const release = await github.rest.repos.getReleaseByTag({
               owner: process.env.REPO_OWNER,
               repo: process.env.REPO_NAME,
               tag: releaseName
@@ -82,7 +82,7 @@ jobs:
               core.setOutput('skip-build', false);
             } else {            
               const targetDir = process.env.TARGET_DIR;
-              const assets = await github.repos.listReleaseAssets({
+              const assets = await github.rest.repos.listReleaseAssets({
                 owner: process.env.REPO_OWNER,
                 repo: process.env.REPO_NAME,
                 release_id: release.data.id
@@ -113,13 +113,13 @@ jobs:
           github-token: ${{ secrets.RELEASE_PAT }}
           script: |
             const releaseName = process.env.TAG;
-            const release = await github.repos.getReleaseByTag({
+            const release = await github.rest.repos.getReleaseByTag({
               owner: process.env.REPO_OWNER,
               repo: process.env.REPO_NAME,
               tag: releaseName
             };
             if (release === null) {
-              const result = await github.repos.createRelease({
+              const result = await github.rest.repos.createRelease({
                 owner: process.env.REPO_OWNER,
                 repo: process.env.REPO_NAME,
                 tag_name: releaseName,
@@ -138,7 +138,7 @@ jobs:
           github-token: ${{ secrets.RELEASE_PAT }}
           script: |
             const releaseName = process.env.TAG;
-            const release = await github.repos.getReleaseByTag({
+            const release = await github.rest.repos.getReleaseByTag({
               owner: process.env.REPO_OWNER,
               repo: process.env.REPO_NAME,
               tag: releaseName
@@ -146,7 +146,7 @@ jobs:
             const targetDir = process.env.TARGET_DIR;
             const releaseId = release.data.id;
             const uploadUrl = release.data.upload_url;
-            const artifact = await github.repos.uploadReleaseAsset({
+            const artifact = await github.rest.repos.uploadReleaseAsset({
               url: uploadUrl,
               headers: {
                 'content-type': 'application/gzip',
