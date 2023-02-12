@@ -32,12 +32,20 @@ env:
   V8_TSAN: ${{ inputs.V8_TSAN || '' }}
 
 jobs:
-  determine-tag-name:
+  build:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout private target
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}
+          token: ${{ secrets.CLONE_URL_PAT }}
+          persist-credentials: false
+          path: target
+
       - name: Determine tag name
         id: determine-tag-name
-        uses: actions/github-script@v3
+        uses: actions/github-script@v6
         with:
           script: |
             const tag = process.env.V8_VERSION;
@@ -60,42 +68,34 @@ jobs:
           TARGET_DIR=$(./compute_target_dir.sh)
           echo "{target_dir}={$TARGET_DIR}" >> $GITHUB_OUTPUT
       - name: Check whether to skip the build
-        run: |
-          const releaseName = steps.determine-tag-name.outputs.tag;
-          const release = await github.repos.getReleaseByTag({
-            owner: process.env.REPO_OWNER,
-            repo: process.env.REPO_NAME,
-            tag: releaseName
-          }).catch(error => {
-            core.debug(error);
-            return null;
-          });
-          if (release === null) {
-            core.setOutput('skip-build', false);
-          } else {            
-            const targetDir = steps.determine-tag-name.outputs.target_dir;
-            const assets = await github.repos.listReleaseAssets({
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const releaseName = steps.determine-tag-name.outputs.tag;
+            const release = await github.repos.getReleaseByTag({
               owner: process.env.REPO_OWNER,
               repo: process.env.REPO_NAME,
-              release_id: release.data.id
+              tag: releaseName
+            }).catch(error => {
+              core.debug(error);
+              return null;
             });
-            const assetNames = assets.data.map(asset => asset.name);
-            if (assetNames.includes(`${targetDir}.tar.gz`)) {
-              core.setOutput('skip-build', true);
-            } else {
+            if (release === null) {
               core.setOutput('skip-build', false);
+            } else {            
+              const targetDir = steps.determine-tag-name.outputs.target_dir;
+              const assets = await github.repos.listReleaseAssets({
+                owner: process.env.REPO_OWNER,
+                repo: process.env.REPO_NAME,
+                release_id: release.data.id
+              });
+              const assetNames = assets.data.map(asset => asset.name);
+              if (assetNames.includes(`${targetDir}.tar.gz`)) {
+                core.setOutput('skip-build', true);
+              } else {
+                core.setOutput('skip-build', false);
+              }
             }
-          }
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout private target
-        uses: actions/checkout@v3
-        with:
-          repository: ${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}
-          token: ${{ secrets.CLONE_URL_PAT }}
-          persist-credentials: false
-          path: target
       - name: "${{ env.V8_VERSION }} ${{ env.V8_BUILD_MODE }}"
         run: |
           echo $V8_VERSION
@@ -110,7 +110,7 @@ jobs:
           TARGET_DIR=$(../compute_target_dir.sh)
           tar -czf "$TARGET_DIR".tar.gz "$TARGET_DIR"
       - name: Create release
-        uses: actions/github-script@v3
+        uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.RELEASE_PAT }}
           script: |
@@ -139,7 +139,7 @@ jobs:
               core.info('Release already exists: ' + release.data.html_url);
             }
       - name: Upload artifact to release
-        uses: actions/github-script@v3
+        uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.RELEASE_PAT }}
           script: |
