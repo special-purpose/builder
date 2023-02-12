@@ -146,6 +146,7 @@ jobs:
         with:
           github-token: ${{ secrets.RELEASE_PAT }}
           script: |
+            const fs = require('fs');
             const releaseName = process.env.TAG;
             const release = await github.rest.repos.getReleaseByTag({
               owner: process.env.REPO_OWNER,
