@@ -69,6 +69,9 @@ jobs:
           echo "{TARGET_DIR}={$TARGET_DIR}" >> $GITHUB_ENV
       - name: Check whether to skip the build
         uses: actions/github-script@v6
+        env:
+          REPO_OWNER: ${{ secrets.REPO_OWNER }}
+          REPO_NAME: ${{ secrets.REPO_NAME }}
         with:
           github-token: ${{ secrets.RELEASE_PAT }}
           script: |
@@ -109,6 +112,9 @@ jobs:
           tar -czf "$TARGET_DIR".tar.gz "$TARGET_DIR"
       - name: Create release
         uses: actions/github-script@v6
+        env:
+          REPO_OWNER: ${{ secrets.REPO_OWNER }}
+          REPO_NAME: ${{ secrets.REPO_NAME }}
         with:
           github-token: ${{ secrets.RELEASE_PAT }}
           script: |
@@ -134,6 +140,9 @@ jobs:
             }
       - name: Upload artifact to release
         uses: actions/github-script@v6
+        env:
+          REPO_OWNER: ${{ secrets.REPO_OWNER }}
+          REPO_NAME: ${{ secrets.REPO_NAME }}
         with:
           github-token: ${{ secrets.RELEASE_PAT }}
           script: |
