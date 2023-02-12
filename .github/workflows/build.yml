@@ -123,7 +123,7 @@ jobs:
               owner: process.env.REPO_OWNER,
               repo: process.env.REPO_NAME,
               tag: releaseName
-            };
+            });
             if (release === null) {
               const result = await github.rest.repos.createRelease({
                 owner: process.env.REPO_OWNER,
