@@ -66,7 +66,7 @@ jobs:
         run: |
           cd target/Cloud/Docker/V8Builder
           TARGET_DIR=$(./compute-target-dir.sh)
-          echo "{TARGET_DIR}={$TARGET_DIR}" >> $GITHUB_ENV
+          echo "TARGET_DIR=$TARGET_DIR" >> $GITHUB_ENV
       - name: Check whether to skip the build
         uses: actions/github-script@v6
         env:
