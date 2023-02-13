@@ -85,6 +85,7 @@ jobs:
               return null;
             });
             if (release === null) {
+              core.info('not skipping-build, because there is no existing release');
               core.setOutput('skip-build', false);
             } else {            
               const targetDir = process.env.TARGET_DIR;
@@ -95,8 +96,10 @@ jobs:
               });
               const assetNames = assets.data.map(asset => asset.name);
               if (assetNames.includes(`${targetDir}.tar.gz`)) {
+                core.info('skipping build, because there is an existing release and artifact.');
                 core.setOutput('skip-build', true);
               } else {
+                core.info(`not skipping-build, because there is an existing release, but no artifact with name: ${targetDir}.tar.gz`);
                 core.setOutput('skip-build', false);
               }
             }
@@ -126,6 +129,9 @@ jobs:
               owner: process.env.REPO_OWNER,
               repo: process.env.REPO_NAME,
               tag: releaseName
+            }).catch(error => {
+              core.debug(error);
+              return null;
             });
             if (release === null) {
               const result = await github.rest.repos.createRelease({
