@@ -69,6 +69,7 @@ jobs:
           echo "TARGET_DIR=$TARGET_DIR" >> $GITHUB_ENV
       - name: Check whether to skip the build
         uses: actions/github-script@v6
+        id: check-skip-build
         env:
           REPO_OWNER: ${{ secrets.REPO_OWNER }}
           REPO_NAME: ${{ secrets.REPO_NAME }}
@@ -104,7 +105,7 @@ jobs:
               }
             }
       - name: "${{ env.V8_VERSION }} ${{ env.V8_BUILD_MODE }}"
-        if: ${{ !steps.determine-target-dir.outputs.skip-build }}
+        if: ${{ !steps.check-skip-build.outputs.skip-build }}
         run: |
           echo $V8_VERSION
           echo $V8_BUILD_MODE
