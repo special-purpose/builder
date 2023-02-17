@@ -104,6 +104,7 @@ jobs:
               }
             }
       - name: "${{ env.V8_VERSION }} ${{ env.V8_BUILD_MODE }}"
+        if: ${{ !steps.determine-target-dir.outputs.skip-build }}
         run: |
           echo $V8_VERSION
           echo $V8_BUILD_MODE
