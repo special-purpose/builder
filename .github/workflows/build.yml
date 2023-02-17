@@ -32,8 +32,12 @@ env:
   V8_TSAN: ${{ inputs.V8_TSAN || '' }}
 
 jobs:
-  build:
+  check-skip-build:
     runs-on: ubuntu-latest
+    outputs:
+      TAG: ${{ env.TAG }}
+      TARGET_DIR: ${{ env.TARGET_DIR }}
+      skip-build: ${{ steps.check-skip-build.outputs.skip-build }}
     steps:
       - name: Checkout private target
         uses: actions/checkout@v3
@@ -42,7 +46,6 @@ jobs:
           token: ${{ secrets.CLONE_URL_PAT }}
           persist-credentials: false
           path: target
-
       - name: Determine tag name
         id: determine-tag-name
         uses: actions/github-script@v6
@@ -66,7 +69,8 @@ jobs:
         run: |
           cd target/Cloud/Docker/V8Builder
           TARGET_DIR=$(./compute-target-dir.sh)
-          echo "TARGET_DIR=$TARGET_DIR" >> $GITHUB_ENV
+          echo "TARGET_DIR=$TARGET_DIR" >> "$GITHUB_ENV"
+          echo "TARGET_DIR=$TARGET_DIR" >> "$GITHUB_OUTPUT"
       - name: Check whether to skip the build
         uses: actions/github-script@v6
         id: check-skip-build
@@ -104,13 +108,27 @@ jobs:
                 core.setOutput('skip-build', false);
               }
             }
+  build:
+    runs-on: ubuntu-latest
+    needs: check-skip-build
+    if: ${{ !needs.check-skip-build.outputs.skip-build }}
+    env:
+      TAG: ${{ needs.check-skip-build.outputs.TAG }}
+      TARGET_DIR: ${{ needs.check-skip-build.outputs.TARGET_DIR }}
+    steps:
+      - name: Checkout private target
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ secrets.REPO_OWNER }}/${{ secrets.REPO_NAME }}
+          token: ${{ secrets.CLONE_URL_PAT }}
+          persist-credentials: false
+          path: target
       - name: "${{ env.V8_VERSION }} ${{ env.V8_BUILD_MODE }}"
-        if: ${{ !steps.check-skip-build.outputs.skip-build }}
         run: |
-          echo $V8_VERSION
-          echo $V8_BUILD_MODE
-          echo $V8_ASAN
-          echo $V8_TSAN          
+          echo "$V8_VERSION"
+          echo "$V8_BUILD_MODE"
+          echo "$V8_ASAN"
+          echo "$V8_TSAN"
           cd target/Cloud/Docker
           ./build.sh v8
       - name: Package
