@@ -91,7 +91,7 @@ jobs:
             });
             if (release === null) {
               core.info('not skipping-build, because there is no existing release');
-              core.setOutput('skip-build', false);
+              core.setOutput('skip-build', 'false');
             } else {            
               const targetDir = process.env.TARGET_DIR;
               const assets = await github.rest.repos.listReleaseAssets({
@@ -102,16 +102,16 @@ jobs:
               const assetNames = assets.data.map(asset => asset.name);
               if (assetNames.includes(`${targetDir}.tar.gz`)) {
                 core.info('skipping build, because there is an existing release and artifact.');
-                core.setOutput('skip-build', true);
+                core.setOutput('skip-build', 'true');
               } else {
                 core.info(`not skipping-build, because there is an existing release, but no artifact with name: ${targetDir}.tar.gz`);
-                core.setOutput('skip-build', false);
+                core.setOutput('skip-build', 'false');
               }
             }
   build:
     runs-on: ubuntu-latest
     needs: check-skip-build
-    if: ${{ !needs.check-skip-build.outputs.skip-build }}
+    if: ${{ needs.check-skip-build.outputs.skip-build == 'false'}}
     env:
       TAG: ${{ needs.check-skip-build.outputs.TAG }}
       TARGET_DIR: ${{ needs.check-skip-build.outputs.TARGET_DIR }}
